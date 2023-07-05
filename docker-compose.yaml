@@ -1,0 +1,56 @@
+version: '3'
+services:
+  db:
+    image: mcr.microsoft.com/azure-sql-edge
+    # platform: linux/amd64
+    environment: 
+      SA_PASSWORD: Password1
+      ACCEPT_EULA: Y
+    volumes:
+      - sqlvolume:/var/opt/mssql
+  octopus-server:
+    image: octopusdeploy/octopusdeploy:2022.4
+    platform: linux/amd64
+    environment:
+      ACCEPT_EULA: Y
+      DB_CONNECTION_STRING: Server=db,1433;Database=OctopusDeploy;User=sa;Password=Password1
+      ADMIN_USERNAME: admin
+      ADMIN_PASSWORD: Password1
+      MASTER_KEY: T0hfR3tq26J7gHoFPb3EWQ==
+    ports:
+      - 8081:8080
+      - 11111:10943
+    depends_on:
+      - db
+    volumes:
+      - repository:/repository
+      - artifacts:/artifacts
+      - taskLogs:/taskLogs
+      - cache:/cache
+      - import:/import
+  staging-target:
+    build: .
+    ports:
+      - 8082:80
+    volumes:
+      - ${PWD}/nginx.conf:/etc/nginx/sites-available/default
+      - staging-site:/var/www/html
+      - ${PWD}/environment.staging.txt:/var/www/html/environment.txt
+  production-target:
+    build: .
+    ports:
+      - 8083:80
+    volumes:
+      - ${PWD}/nginx.conf:/etc/nginx/sites-available/default
+      - production-site:/var/www/html
+      - ${PWD}/environment.production.txt:/var/www/html/environment.txt      
+
+volumes:
+  repository:
+  artifacts:
+  taskLogs:
+  cache:
+  import:
+  sqlvolume:
+  staging-site:
+  production-site:
